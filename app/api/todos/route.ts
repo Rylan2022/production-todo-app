@@ -1,42 +1,58 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth/session";
 
-// GET /api/todos
 export async function GET() {
-  try {
-    const todos = await prisma.todo.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+  const user = await getCurrentUser();
 
-    return NextResponse.json({
-      success: true,
-      data: todos,
-    });
-  } catch (error) {
+  if (!user) {
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to fetch todos",
+        message: "Authentication required",
       },
-      { status: 500 },
+      { status: 401 },
     );
   }
+
+  const todos = await prisma.todo.findMany({
+    where: user.role === "ADMIN"
+      ? undefined
+      : {
+          userId: user.id,
+        },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    data: todos,
+  });
 }
 
-// POST /api/todos
 export async function POST(request: Request) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Authentication required",
+      },
+      { status: 401 },
+    );
+  }
+
   try {
     const body = await request.json();
 
-    const { title, description, userId } = body;
-
-    if (!title || !userId) {
+    if (!body.title || typeof body.title !== "string") {
       return NextResponse.json(
         {
           success: false,
-          message: "Title and userId are required",
+          message: "Title is required",
         },
         { status: 400 },
       );
@@ -44,9 +60,14 @@ export async function POST(request: Request) {
 
     const todo = await prisma.todo.create({
       data: {
-        title,
-        description,
-        userId,
+        title: body.title,
+        description:
+          typeof body.description === "string"
+            ? body.description
+            : null,
+
+        // Never use body.userId here.
+        userId: user.id,
       },
     });
 
@@ -58,11 +79,11 @@ export async function POST(request: Request) {
       },
       { status: 201 },
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         success: false,
-        message: "Something went wrong",
+        message: "Failed to create todo",
       },
       { status: 500 },
     );
