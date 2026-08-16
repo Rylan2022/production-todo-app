@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { registerSchema } from "@/lib/validations/auth.schema";
 import { registerUser } from "@/services/auth.service";
+import {
+  createSession,
+  SESSION_COOKIE,
+  SESSION_DURATION_SECONDS,
+} from "@/lib/auth/session";
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +28,8 @@ export async function POST(request: Request) {
 
     const user = await registerUser(result.data);
 
-    return NextResponse.json(
+    const session = await createSession(user.id);
+    const response = NextResponse.json(
       {
         success: true,
         message: "User registered successfully",
@@ -33,6 +39,19 @@ export async function POST(request: Request) {
         status: 201,
       },
     );
+
+    response.cookies.set({
+      name: SESSION_COOKIE,
+      value: session.token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_DURATION_SECONDS,
+      expires: session.expiresAt,
+    });
+
+    return response;
   } catch (error) {
     if (error instanceof Error) {
       if (error.message === "EMAIL_ALREADY_EXISTS") {
