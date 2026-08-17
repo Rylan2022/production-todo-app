@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   Circle,
@@ -23,6 +24,7 @@ export type Todo = {
 };
 
 export function TodoWorkspace() {
+  const router = useRouter();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -34,6 +36,10 @@ export function TodoWorkspace() {
     setLoading(true);
     const r = await fetch("/api/todos");
     const data = await r.json();
+    if (r.status === 401) {
+      router.push("/login");
+      return;
+    }
     if (!r.ok) setError(data.message ?? "Could not load tasks.");
     else setTodos(data.data);
     setLoading(false);
@@ -43,6 +49,10 @@ export function TodoWorkspace() {
     fetch("/api/todos").then(async (r) => {
       const data = await r.json();
       if (!active) return;
+      if (r.status === 401) {
+        router.push("/login");
+        return;
+      }
       if (!r.ok) setError(data.message ?? "Could not load tasks.");
       else setTodos(data.data);
       setLoading(false);
@@ -50,7 +60,7 @@ export function TodoWorkspace() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [router]);
   const visible = useMemo(
     () =>
       todos.filter(
