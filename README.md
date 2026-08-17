@@ -72,7 +72,7 @@ There is no separate controller, service, or repository layer yet. Route Handler
 - `lib/prisma.ts` creates the Prisma Client using `PrismaLibSql`.
 - `prisma/schema.prisma` defines the `User` and `Todo` models and their relationship.
 - `prisma/migrations` stores the database migration history.
-- `prisma.config.ts` tells Prisma where the schema and migrations are located and loads `LOCAL_DATABASE_URL` for Prisma CLI operations.
+- `prisma.config.ts` tells Prisma where the schema and migrations are located and loads `DATABASE_URL` for Prisma CLI operations.
 
 ### Shared utilities and configuration
 
@@ -196,17 +196,16 @@ package.json             # Scripts and dependencies
 
 ## Environment variables
 
-Create a `.env` file in the project root. Do not commit real credentials.
+Configure these environment variables in your deployment platform. Do not commit real credentials.
 
 ```env
 DATABASE_URL="your-runtime-database-url"
 TURSO_AUTH_TOKEN="your-turso-auth-token"
-LOCAL_DATABASE_URL="file:./dev.db"
 ```
 
 - `DATABASE_URL` is used by `lib/prisma.ts` at application runtime.
 - `TURSO_AUTH_TOKEN` authenticates the libSQL/Turso connection when required.
-- `LOCAL_DATABASE_URL` is used by Prisma CLI commands through `prisma.config.ts`.
+- `DATABASE_URL` is also used by Prisma CLI commands through `prisma.config.ts`.
 
 The exact URL format depends on the chosen database. Keep runtime and migration configuration aligned with the environment where the application runs.
 
